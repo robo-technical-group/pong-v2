@@ -11,16 +11,12 @@ controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
     if (gameMode == 1) {
         numPlayers = 2
         startGame()
-    } else {
-    	
     }
 })
 controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
     if (gameMode == 1) {
         numPlayers = 1
         startGame()
-    } else {
-    	
     }
 })
 function startGame () {
@@ -51,6 +47,7 @@ function showSplashScreen () {
     mySplashScreen.addInstructionsList(["A = 1 Player", "B = 2 Players"])
     mySplashScreen.build()
 }
+// Launch the ball from the middle of the playfield.
 function launchBall () {
     setBallVelocity(randint(-45, 45))
     if (Math.percentChance(50)) {
@@ -267,6 +264,7 @@ function initGame () {
         `, SpriteKind.Projectile)
     ball.setFlag(SpriteFlag.BounceOnWall, true)
 }
+// Place the ball in the middle of the playfield and reset the countdown.
 function resetBall () {
     ball.setVelocity(0, 0)
     ball.setPosition(80, 60)
@@ -307,6 +305,7 @@ function updateGame () {
         updateAiPlayer()
     }
 }
+// Decrement the countdown.
 function updateCountdown () {
     if (sprites.readDataNumber(ball, "countdown") > 0) {
         ball.say(convertToText(sprites.readDataNumber(ball, "countdown")))
@@ -316,6 +315,8 @@ function updateCountdown () {
     sprites.changeDataNumberBy(ball, "countdown", -1)
     sprites.setDataNumber(ball, "nextCount", game.runtime() + 1000)
 }
+// Set the ball's velocity to a given angle.
+// angleDegrees: number = angle of velocity vector in degrees.
 function setBallVelocity (angleDegrees: number) {
     ballAngleRads = Math.atan2(0, -1) * (angleDegrees / 180)
     ballVx = sprites.readDataNumber(ball, "speed") * Math.cos(ballAngleRads)
