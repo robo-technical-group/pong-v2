@@ -7,13 +7,6 @@
  * 
  * Template last update: 03 Aug 2020 ak
  */
-controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (gameMode == 1) {
-    	
-    } else {
-    	
-    }
-})
 controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
     if (gameMode == 1) {
         numPlayers = 2
@@ -48,13 +41,6 @@ function updateAiPlayer () {
         }
     }
 }
-controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (gameMode == 1) {
-    	
-    } else {
-    	
-    }
-})
 function showSplashScreen () {
     mySplashScreen = infoScreens.createSplashScreen()
     mySplashScreen.setTitles(["Pong"])
@@ -72,13 +58,6 @@ function launchBall () {
     }
     sprites.setDataNumber(ball, "countdown", -2)
 }
-controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (gameMode == 1) {
-    	
-    } else {
-    	
-    }
-})
 sprites.onOverlap(SpriteKind.Player, SpriteKind.Projectile, function (sprite, otherSprite) {
     music.baDing.play()
     deltaY = ball.y - sprite.y
@@ -288,13 +267,6 @@ function initGame () {
         `, SpriteKind.Projectile)
     ball.setFlag(SpriteFlag.BounceOnWall, true)
 }
-controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (gameMode == 1) {
-    	
-    } else {
-    	
-    }
-})
 function resetBall () {
     ball.setVelocity(0, 0)
     ball.setPosition(80, 60)
