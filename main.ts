@@ -36,6 +36,18 @@ function startGame () {
     initGame()
     resetBall()
 }
+// Updates the AI player in single-player mode.
+function updateAiPlayer () {
+    if (ball.vx > 0 && ball.x >= scene.screenWidth() / 2) {
+        if (player2.y - ball.y > 8) {
+            player2.vy = 0 - SPEED_AI
+        } else if (ball.y - player2.y > 8) {
+            player2.vy = SPEED_AI
+        } else {
+            player2.vy = 0
+        }
+    }
+}
 controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
     if (gameMode == 1) {
     	
@@ -54,13 +66,33 @@ function showSplashScreen () {
     mySplashScreen.build()
 }
 function launchBall () {
-    ballAngle = randint(-45, 45)
+    setBallVelocity(randint(-45, 45))
+    if (Math.percentChance(50)) {
+        ball.vx = 0 - ball.vx
+    }
+    sprites.setDataNumber(ball, "countdown", -2)
 }
 controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
     if (gameMode == 1) {
     	
     } else {
     	
+    }
+})
+sprites.onOverlap(SpriteKind.Player, SpriteKind.Projectile, function (sprite, otherSprite) {
+    music.baDing.play()
+    deltaY = ball.y - sprite.y
+    deltaPercent = deltaY / 8
+    ballAngle = 90 * deltaPercent
+    if (ballAngle >= 75) {
+        ballAngle = 75
+    }
+    if (ballAngle <= -75) {
+        ballAngle = -75
+    }
+    setBallVelocity(ballAngle)
+    if (ball.x > 80) {
+        ball.vx = 0 - ball.vx
     }
 })
 function startAttractMode () {
@@ -72,6 +104,8 @@ function initGame () {
     MAX_SCORE = 11
     INIT_BALL_SPEED = 50
     INIT_PLAYER_SPEED = 100
+    BALL_DEAD_SPACE = 12
+    SPEED_AI = 50
     scene.setBackgroundImage(img`
         f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f 
         f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f 
@@ -212,8 +246,9 @@ function initGame () {
         . . . . . . . . . . . . 1 1 1 1 
         . . . . . . . . . . . . 1 1 1 1 
         `, SpriteKind.Player)
-    player1.setPosition(4, 60)
+    player1.setPosition(8, 60)
     controller.moveSprite(player1, 0, INIT_PLAYER_SPEED)
+    player1.setFlag(SpriteFlag.StayInScreen, true)
     player2 = sprites.create(img`
         1 1 1 1 . . . . . . . . . . . . 
         1 1 1 1 . . . . . . . . . . . . 
@@ -232,12 +267,13 @@ function initGame () {
         1 1 1 1 . . . . . . . . . . . . 
         1 1 1 1 . . . . . . . . . . . . 
         `, SpriteKind.Player)
-    player2.setPosition(156, 60)
+    player2.setPosition(151, 60)
     if (numPlayers == 2) {
         controller.player2.moveSprite(player2, 0, INIT_PLAYER_SPEED)
     } else {
         aiSpeed = INIT_PLAYER_SPEED
     }
+    player2.setFlag(SpriteFlag.StayInScreen, true)
     info.player1.setScore(0)
     info.player2.setScore(0)
     ball = sprites.create(img`
@@ -266,6 +302,39 @@ function resetBall () {
     sprites.setDataNumber(ball, "countdown", 3)
     sprites.setDataNumber(ball, "nextCount", 0)
 }
+// Main game update function
+function updateGame () {
+    if (sprites.readDataNumber(ball, "countdown") >= -1 && game.runtime() >= sprites.readDataNumber(ball, "nextCount")) {
+        if (sprites.readDataNumber(ball, "countdown") >= 0) {
+            updateCountdown()
+        } else {
+            launchBall()
+        }
+    }
+    if (ball.x <= BALL_DEAD_SPACE) {
+        music.wawawawaa.playUntilDone()
+        info.player2.changeScoreBy(1)
+        resetBall()
+    }
+    if (ball.x >= scene.screenWidth() - BALL_DEAD_SPACE) {
+        music.wawawawaa.playUntilDone()
+        info.player1.changeScoreBy(1)
+        resetBall()
+    }
+    if (info.player1.score() >= MAX_SCORE) {
+        game.over(true, effects.confetti)
+    }
+    if (info.player2.score() >= MAX_SCORE) {
+        if (numPlayers == 1) {
+            game.over(false, effects.slash)
+        } else {
+            game.over(true, effects.confetti)
+        }
+    }
+    if (numPlayers == 1) {
+        updateAiPlayer()
+    }
+}
 function updateCountdown () {
     if (sprites.readDataNumber(ball, "countdown") > 0) {
         ball.say(convertToText(sprites.readDataNumber(ball, "countdown")))
@@ -275,14 +344,27 @@ function updateCountdown () {
     sprites.changeDataNumberBy(ball, "countdown", -1)
     sprites.setDataNumber(ball, "nextCount", game.runtime() + 1000)
 }
-let ball: Sprite = null
+function setBallVelocity (angleDegrees: number) {
+    ballAngleRads = Math.atan2(0, -1) * (angleDegrees / 180)
+    ballVx = sprites.readDataNumber(ball, "speed") * Math.cos(ballAngleRads)
+    ballVy = sprites.readDataNumber(ball, "speed") * Math.sin(ballAngleRads)
+    ball.setVelocity(Math.round(ballVx), Math.round(ballVy))
+}
+let ballVy = 0
+let ballVx = 0
+let ballAngleRads = 0
 let aiSpeed = 0
-let player2: Sprite = null
 let player1: Sprite = null
+let BALL_DEAD_SPACE = 0
 let INIT_PLAYER_SPEED = 0
 let INIT_BALL_SPEED = 0
 let MAX_SCORE = 0
 let ballAngle = 0
+let deltaPercent = 0
+let deltaY = 0
+let SPEED_AI = 0
+let player2: Sprite = null
+let ball: Sprite = null
 let mySplashScreen: SplashScreens = null
 let gameMode = 0
 let numPlayers = 0
@@ -291,13 +373,7 @@ gameMode = -1
 startAttractMode()
 game.onUpdate(function () {
     if (gameMode == 0) {
-        if (sprites.readDataNumber(ball, "countdown") >= -1 && game.runtime() >= sprites.readDataNumber(ball, "nextCount")) {
-            if (sprites.readDataNumber(ball, "countdown") >= 0) {
-                updateCountdown()
-            } else {
-                launchBall()
-            }
-        }
+        updateGame()
     } else {
         if (game.runtime() >= mySplashScreen.nextTime) {
             mySplashScreen.rotate()
